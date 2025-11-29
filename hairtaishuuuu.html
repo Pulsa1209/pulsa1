@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="mn">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Маралмаад зориулсан Reel</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;700;800&family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg-1: #fff6fb;
+    --pink-1: #ff2d95;
+    --pink-2: #ff8cc0;
+    --rose: #f7d7e6;
+    --muted: #6b6b6b;
+    --card-bg: #fff;
+    --glass: rgba(255,255,255,0.6);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; background:linear-gradient(180deg,var(--bg-1),#fff); font-family:'Poppins', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale;}
+  /* Phone-like container to mimic reel */
+  .frame {
+    max-width:420px;
+    height:90vh;
+    margin:18px auto;
+    border-radius:24px;
+    overflow:hidden;
+    position:relative;
+    box-shadow: 0 30px 70px rgba(0,0,0,0.18);
+    background: linear-gradient(180deg, rgba(255,250,252,0.95), #fff);
+    border: 1px solid rgba(255,45,149,0.06);
+  }
+
+  /* floating hearts background (absolute canvas) */
+  .hearts-canvas { position:absolute; inset:0; pointer-events:none; z-index:2; overflow:hidden; }
+
+  /* vertical snap container for reel-like pages */
+  .reel-pages {
+    height:100%;
+    width:100%;
+    scroll-snap-type: y mandatory;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    position:relative;
+  }
+
+  .page {
+    height:100%;
+    min-height:100%;
+    width:100%;
+    scroll-snap-align: start;
+    position:relative;
+    padding:28px;
+    display:flex;
+    align-items:flex-start;
+    justify-content:center;
+  }
+
+  /* content card inside page */
+  .card {
+    width:100%;
+    max-width:360px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.9), rgba(255,250,253,0.95));
+    border-radius:18px;
+    box-shadow: 0 12px 30px rgba(172,58,120,0.08);
+    padding:22px;
+    position:relative;
+    overflow:hidden;
+    transform: translateY(10px);
+    transition: transform 420ms cubic-bezier(.2,.9,.3,1), opacity 420ms;
+    opacity:0;
+  }
+
+  .card.visible { transform: translateY(0); opacity:1; }
+
+  /* Hero style */
+  .hero {
+    text-align:center;
+    padding-top:10px;
+  }
+  .hero .title {
+    font-size:36px;
+    font-weight:800;
+    color: var(--pink-1);
+    line-height:1.02;
+    margin:6px 0 8px;
+    text-shadow: 0 6px 20px rgba(255,45,149,0.08);
+  }
+  .hero .sub {
+    font-size:15px;
+    color:#6b2b52;
+    opacity:0.95;
+    margin-bottom:12px;
+    font-weight:600;
+  }
+  .hero .emoji {
+    font-size:42px;
+    display:block;
+    margin-bottom:8px;
+    transform-origin:center;
+    animation: floaty 3s ease-in-out infinite;
+  }
+
+  @keyframes floaty {
+    0% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-8px) rotate(4deg); }
+    100% { transform: translateY(0) rotate(-4deg); }
+  }
+
+  .hero .name {
+    font-size:22px;
+    color:#a60b5b;
+    font-weight:700;
+    margin-top:6px;
+  }
+
+  /* pink ribbon */
+  .ribbon {
+    height:18px;
+    border-radius:10px;
+    margin:18px 0;
+    background: linear-gradient(90deg, rgba(255,140,180,0.28), rgba(255,45,149,0.14));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.5);
+  }
+
+  /* mid headline */
+  .bighead {
+    font-size:28px;
+    color:#b80b63;
+    font-weight:800;
+    text-align:center;
+    margin:8px 0 6px;
+  }
+  .lead {
+    text-align:center;
+    color:#111;
+    opacity:0.9;
+    margin-top:8px;
+    font-weight:600;
+  }
+
+  /* long text style */
+  .longtext {
+    font-size:16px;
+    color:#222;
+    line-height:1.75;
+    padding:12px 6px 26px;
+  }
+  .longtext h3 {
+    color:#d80b6a;
+    font-size:22px;
+    margin:6px 0 10px;
+    font-weight:800;
+  }
+  .bullets {
+    margin-left:18px;
+    list-style: disc;
+    color:#222;
+  }
+  .emoji-inline { font-size:18px; margin-right:8px; }
+
+  /* heart like button */
+  .like-btn {
+    position:absolute;
+    right:18px;
+    bottom:18px;
+    z-index:10;
+    width:62px; height:62px;
+    border-radius:16px;
+    display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(180deg,#fff,#fff);
+    border:1px solid rgba(255,45,149,0.08);
+    box-shadow:0 10px 30px rgba(211,0,104,0.06);
+    cursor:pointer;
+    transition: transform 180ms;
+  }
+  .like-btn:active { transform: scale(.94); }
+
+  .like-btn .heart {
+    font-size:30px;
+    transform-origin:center;
+    transition: transform 260ms;
+    filter: drop-shadow(0 8px 20px rgba(255,45,149,0.18));
+  }
+
+  /* heart pop animation */
+  .pop {
+    animation: pop 640ms cubic-bezier(.2,.9,.3,1);
+  }
+  @keyframes pop {
+    0% { transform: scale(0.2); opacity:0; }
+    40% { transform: scale(1.12); opacity:1; }
+    100% { transform: scale(1); opacity:1; }
+  }
+
+  /* floating small hearts (left) */
+  .small-heart {
+    position:absolute;
+    left:12px;
+    bottom:70px;
+    font-size:26px;
+    transform-origin:center;
+    animation: beat 2.4s infinite ease-in-out;
+    opacity:0.95;
+  }
+
+  /* fixed comment bar (Instagram-like) */
+  .comment-bar {
+    position: absolute;
+    left:0; right:0;
+    bottom:0;
+    padding:12px 18px;
+    display:flex;
+    justify-content:center;
+    z-index:60;
+    background: linear-gradient(180deg, rgba(255,255,255,0), rgba(0,0,0,0.02));
+    pointer-events:none;
+  }
+  .comment-inner {
+    pointer-events:auto;
+    width: calc(100% - 36px);
+    max-width:420px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    background: #121212;
+    color:white;
+    border-radius:28px;
+    padding:10px 12px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+  }
+  .comment-inner input {
+    background: transparent; border:none; outline:none; color:#fff; font-size:15px; flex:1;
+  }
+  .comment-inner button {
+    background: linear-gradient(90deg,#ff7fb3,#ff2d95); border:none; padding:8px 12px; color:white; font-weight:700; border-radius:14px; cursor:pointer;
+  }
+
+  /* reveal animation for text blocks */
+  .reveal { opacity:0; transform: translateY(14px) scale(0.995); transition: opacity 560ms, transform 560ms; }
+  .reveal.show { opacity:1; transform: translateY(0) scale(1); }
+
+  /* a subtle page indicator bar at top */
+  .page-ind {
+    position:absolute;
+    top:10px;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    gap:6px;
+    z-index:50;
+    pointer-events:none;
+  }
+  .page-ind .dot {
+    width:6px; height:6px; border-radius:50%; background:rgba(255,255,255,0.5);
+  }
+  .page-ind .dot.active { background:var(--pink-1); box-shadow:0 4px 12px rgba(255,45,149,0.18); }
+
+  /* responsive tweaks */
+  @media (max-width:400px){
+    .hero .title { font-size:32px; }
+    .bighead { font-size:24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="frame" aria-hidden="false">
+
+  <!-- animated hearts background -->
+  <div class="hearts-canvas" id="heartsCanvas"></div>
+
+  <!-- top page indicator -->
+  <div class="page-ind" id="pageInd">
+    <div class="dot active"></div>
+    <div class="dot"></div>
+    <div class="dot"></div>
+  </div>
+
+  <!-- reel pages -->
+  <div class="reel-pages" id="pages">
+
+    <!-- PAGE 1 - HERO -->
+    <section class="page" data-page="1">
+      <div class="card reveal" id="card1">
+        <div class="hero">
+          <div class="emoji">🌸💞</div>
+          <div class="title">Зөвхөн чамд</div>
+          <div class="sub">Маралмаа, энэ бол миний зүрхнээс</div>
+          <div class="name" style="margin-top:12px; font-size:20px; color:#a20b5a; font-weight:800;">— Маралмаа —</div>
+        </div>
+
+        <div class="ribbon" aria-hidden="true"></div>
+
+        <div class="bighead">Чи Миний Хамгийн Чухал Хүн Минь Юм Шүү</div>
+        <div class="lead">Чамтай үргэлж хамт баймаар байна. Зөвхөн чамтай ✨</div>
+
+      </div>
+    </section>
+
+    <!-- PAGE 2 - LONG TEXT -->
+    <section class="page" data-page="2">
+      <div class="card reveal" id="card2">
+        <div class="longtext">
+          <h3>💗 Яагаад Хамгийн Чухал Вэ Гэвэл</h3>
+          <p>Маралмаа, чи намайг байгаагаар маань хүлээн авч санаа тавьж хайр гэж юу байдгийг мэдрүүлсэн юм шүү.</p>
+
+          <p style="margin-top:12px;"><strong>Шалтгаанууд:</strong></p>
+          <ul class="bullets">
+            <li>Чамтай байхад юуг ч хийж чадах юм шиг. </li>
+            <li>Чи миний гарыг хөтлөөд орой суух мэдрэмж . </li>
+            <li>Чи минь үнэхээр халамжтай. 🌷</li>
+            <li>Чамаас бусдийн хөөрхөн гэж харавч хэзээч дурлаж чадахгүй✨</li>
+          </ul>
+
+          <div class="ribbon" style="margin-top:22px;"></div>
+
+          <h3 style="margin-top:18px;">Чиний тухай миний бодол</h3>
+          <p>Чиний нүд. Чиний инээд. Чиний яриа. Чиний бүх зүйлийг би мартаж чадахгүй нь. ХАЙРТАЙ ШҮҮ ХӨӨРХНӨӨ .</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PAGE 3 - CUTE CLOSER -->
+    <section class="page" data-page="3">
+      <div class="card reveal" id="card3">
+        <div style="text-align:center;">
+          <div style="font-size:40px; margin-bottom:8px;">🌺💖</div>
+          <div style="font-weight:800; font-size:26px; color:#b80b63;">Чамтай хамт өнгөрүүлэхийг тэсэн ядан хүлээж байна</div>
+          <p style="margin-top:12px; color:#333; font-weight:600;">I love youuuuuuu — <span style="color:#a60b5b; font-weight:800;">Маралмаа</span></p>
+
+          <div style="margin-top:18px;">
+            <button id="giftBtn" style="background:linear-gradient(90deg,#ffd2e8,#ff8cc0); border:none; padding:10px 18px; border-radius:14px; font-weight:800; cursor:pointer;">Send Heart 💌</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div> <!-- end pages -->
+
+  <!-- small static heart left -->
+  <div class="small-heart">💓</div>
+
+</div>
+
+<script>
+/* ---------------------------
+   Scroll reveal + page indicator
+   --------------------------- */
+const pagesEl = document.getElementById('pages');
+const cards = document.querySelectorAll('.card.reveal');
+const pageDots = document.querySelectorAll('.page-ind .dot');
+
+const io = new IntersectionObserver((entries) => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      e.target.classList.add('visible');
+      // add fade-in to internal reveal nodes
+      e.target.querySelectorAll('.longtext, .hero, .bighead, .lead, h3, .bullets, .title').forEach(n => {
+        n.classList.add('show');
+      });
+    }
+  });
+}, { threshold: 0.18 });
+
+cards.forEach(c => io.observe(c));
+
+/* update page indicator based on scroll position */
+pagesEl.addEventListener('scroll', () => {
+  const pages = document.querySelectorAll('.page');
+  let idx = 0;
+  pages.forEach((p, i) => {
+    const rect = p.getBoundingClientRect();
+    const frameRect = pagesEl.getBoundingClientRect();
+    // check which page top is nearest to top of frame
+    if (Math.abs(rect.top - frameRect.top) < 70) idx = i;
+  });
+  pageDots.forEach((d,i) => d.classList.toggle('active', i === idx));
+});
+
+/* ---------------------------
+   Floating hearts particle generator
+   --------------------------- */
+const heartsCanvas = document.getElementById('heartsCanvas');
+const heartEmojis = ['💖','💞','🌸','💓','💕'];
+function spawnHeart(x = null, y = null) {
+  const el = document.createElement('div');
+  el.style.position = 'absolute';
+  el.style.pointerEvents = 'none';
+  el.style.fontSize = (12 + Math.random()*22) + 'px';
+  el.style.opacity = 0.95;
+  el.style.left = (x !== null ? x + 'px' : (20 + Math.random() * (heartsCanvas.clientWidth - 40)) + 'px');
+  el.style.top = (y !== null ? y + 'px' : (heartsCanvas.clientHeight - 40) + 'px');
+  el.textContent = heartEmojis[Math.floor(Math.random()*heartEmojis.length)];
+  heartsCanvas.appendChild(el);
+
+  const driftX = -40 + Math.random()*80;
+  const rise = 200 + Math.random()*220;
+  const rot = (-20 + Math.random()*40);
+
+  el.animate([
+    { transform: `translateY(0px) translateX(0px) rotate(0deg)`, opacity:1 },
+    { transform: `translateY(-${rise}px) translateX(${driftX}px) rotate(${rot}deg)`, opacity:0 }
+  ], {
+    duration: 2200 + Math.random()*1600,
+    easing: 'cubic-bezier(.2,.9,.2,1)',
+    iterations: 1
+  });
+
+  setTimeout(()=> el.remove(), 2600 + Math.random()*1600);
+}
+// spawn a few on load
+for(let i=0;i<6;i++){
+  setTimeout(()=> spawnHeart(), i*280);
+}
+// spawn randomly every few seconds
+setInterval(()=> {
+  if(Math.random() < 0.6) spawnHeart();
+}, 900);
+
+/* spawn on click of gift button (page 3) */
+document.getElementById('giftBtn').addEventListener('click', (e) => {
+  // spawn multiple hearts around button
+  const rect = e.target.getBoundingClientRect();
+  for(let i=0;i<10;i++){
+    setTimeout(()=> spawnHeart(rect.left + rect.width/2 + (Math.random()-0.5)*120, rect.top + (Math.random()-0.2)*40), i*80);
+  }
+});
+
+/* ---------------------------
+   Like button interaction
+   --------------------------- */
+const likeBtn = document.getElementById('likeBtn');
+const mainHeart = document.getElementById('mainHeart');
+let liked = false;
+likeBtn.addEventListener('click', () => {
+  liked = !liked;
+  if (liked) {
+    mainHeart.textContent = '💗';
+    mainHeart.classList.add('pop');
+    // burst small hearts
+    for(let i=0;i<6;i++){
+      setTimeout(() => spawnHeart(likeBtn.getBoundingClientRect().left + 10 + Math.random()*60, likeBtn.getBoundingClientRect().top + 10), i*80);
+    }
+  } else {
+    mainHeart.textContent = '💖';
+  }
+  setTimeout(()=> mainHeart.classList.remove('pop'), 700);
+});
+</script>
+</body>
+</html>
